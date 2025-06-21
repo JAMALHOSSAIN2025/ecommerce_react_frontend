@@ -1,45 +1,64 @@
-// src/context/AuthContext.jsx
+// src/context/CartContext.jsx
 
 import { createContext, useState, useEffect } from 'react';
-import jwtDecode from 'jwt-decode';
 
-const AuthContext = createContext();
+export const CartContext = createContext();
 
-export default AuthContext;
-
-export const AuthProvider = ({ children }) => {
-  const [authTokens, setAuthTokens] = useState(() =>
-    localStorage.getItem('authTokens') ? JSON.parse(localStorage.getItem('authTokens')) : null
-  );
-
-  const [user, setUser] = useState(() =>
-    localStorage.getItem('authTokens') ? jwtDecode(localStorage.getItem('authTokens')) : null
-  );
-
-  const loginUser = (tokenData) => {
-    setAuthTokens(tokenData);
-    setUser(jwtDecode(tokenData.access));
-    localStorage.setItem('authTokens', JSON.stringify(tokenData));
-  };
-
-  const logoutUser = () => {
-    setAuthTokens(null);
-    setUser(null);
-    localStorage.removeItem('authTokens');
-  };
+export const CartProvider = ({ children }) => {
+  const [cartItems, setCartItems] = useState(() => {
+    const savedCart = localStorage.getItem('cartItems');
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
 
   useEffect(() => {
-    if (authTokens) {
-      setUser(jwtDecode(authTokens.access));
-    }
-  }, [authTokens]);
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }, [cartItems]);
 
-  const contextData = {
-    user,
-    authTokens,
-    loginUser,
-    logoutUser,
+  const addToCart = (product) => {
+    setCartItems((prevItems) => {
+      const existingItem = prevItems.find(item => item.id === product.id);
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      } else {
+        return [...prevItems, { ...product, quantity: 1 }];
+      }
+    });
   };
 
-  return <AuthContext.Provider value={contextData}>{children}</AuthContext.Provider>;
+  const removeFromCart = (productId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+  };
+
+  const decreaseQuantity = (productId) => {
+    setCartItems(prevItems => prevItems.map(item => {
+      if (item.id === productId) {
+        if (item.quantity > 1) {
+          return { ...item, quantity: item.quantity - 1 };
+        } else {
+          return null;
+        }
+      }
+      return item;
+    }).filter(Boolean));
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  const contextData = {
+    cartItems,
+    addToCart,
+    removeFromCart,
+    decreaseQuantity,
+    clearCart,
+  };
+
+  return (
+    <CartContext.Provider value={contextData}>
+      {children}
+    </CartContext.Provider>
+  );
 };
