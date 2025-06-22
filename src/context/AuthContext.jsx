@@ -1,7 +1,11 @@
+// src/context/AuthContext.jsx
+
 import { createContext, useState, useEffect } from "react";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode"; // ✅ named import
 
 const AuthContext = createContext();
+
+export default AuthContext;
 
 export const AuthProvider = ({ children }) => {
   const [authTokens, setAuthTokens] = useState(() =>
@@ -9,16 +13,17 @@ export const AuthProvider = ({ children }) => {
       ? JSON.parse(localStorage.getItem("authTokens"))
       : null
   );
+
   const [user, setUser] = useState(() =>
     localStorage.getItem("authTokens")
-      ? jwt_decode(localStorage.getItem("authTokens"))
+      ? jwtDecode(JSON.parse(localStorage.getItem("authTokens")).access)
       : null
   );
 
-  const loginUser = (tokens) => {
-    setAuthTokens(tokens);
-    setUser(jwt_decode(tokens.access));
-    localStorage.setItem("authTokens", JSON.stringify(tokens));
+  const loginUser = (tokenData) => {
+    setAuthTokens(tokenData);
+    setUser(jwtDecode(tokenData.access));
+    localStorage.setItem("authTokens", JSON.stringify(tokenData));
   };
 
   const logoutUser = () => {
@@ -29,7 +34,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     if (authTokens) {
-      setUser(jwt_decode(authTokens.access));
+      setUser(jwtDecode(authTokens.access));
     }
   }, [authTokens]);
 
@@ -41,8 +46,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={contextData}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={contextData}>
+      {children}
+    </AuthContext.Provider>
   );
 };
-
-export default AuthContext;
